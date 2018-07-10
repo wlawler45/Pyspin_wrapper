@@ -1,5 +1,11 @@
+#!/usr/bin/env python
 import PySpin
 import numpy as np
+import rospy
+import time
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge, CvBridgeError
+
 
 #create camera interface type and then append cameras using serial numbers from cameras
 
@@ -13,8 +19,8 @@ class Pyspin_VideoCapture:
 	print num_cameras
 	#designed to take camname, deviceserial number and dictionary of other camera parameters in as arguments and store them as attributes of the object
 	def __init__(self,camname,deviceserial,params={}):
-		
-		
+		self.bridge=CvBridge()
+		self.image_pub=rospy.Publisher("/overhead_camera/Image",Image)
 		self.camname=camname
 		self.deviceserial=deviceserial
 		#lets you assign the dictionary of camera params from the YAML file to this data structure
@@ -28,8 +34,7 @@ class Pyspin_VideoCapture:
 			# Release system
 			Pyspin_VideoCapture.system.ReleaseInstance()
 			raise Exception("No cameras connected")
-        
-	#returns cam_list to allow use of cameras in API context
+        	#returns cam_list to allow use of cameras in API context
 	def get_camera_list(self):
 		return Pyspin_VideoCapture.cam_list
 	
@@ -105,7 +110,17 @@ class Pyspin_VideoCapture:
 		
 	#designed to return a data stream or reference to data stream that can be used for videofeeds, try to use camera piping and specify lower resolution when using
 	#def start_stream(self,device=0,pipe=0):
-	
+
+	def publish_image(self, PySpinconversiontype=PySpin.PixelFormat_Mono8,PySpincolorprocessing=PySpin.HQ_LINEAR):
+		image=self.read_frame(PySpinconversiontype,Pyspincolorprocessing)
+		
+		frame = np.array(image.GetData(), dtype="uint8").reshape( (image.GetHeight(), image.GetWidth(),1))
+		try:
+	         self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "mono8"))
+		except CvBridgeError as e:
+			print(e)
+		
+		
 	#closes cameras correctly
 	def release(self):
 		for i in range(Pyspin_VideoCapture.num_cameras):
