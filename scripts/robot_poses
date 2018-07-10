@@ -1,0 +1,17 @@
+Calibration Pose: 0
+header: 
+  seq: 0
+  stamp: 
+    secs: 1531168740
+    nsecs: 891459941
+  frame_id: "/world"
+pose: 
+  position: 
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  orientation: 
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0

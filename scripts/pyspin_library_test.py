@@ -13,7 +13,7 @@ def image_save_and_load(image):
 if __name__== '__main__':
 	camname="topcam"
 	serialnum="18080264"
-	print "hello"
+
 	camera_obj=wrapper.Pyspin_VideoCapture(camname,serialnum,{})
 	camera_obj.printall_camera_ids()
 	
