@@ -5,18 +5,19 @@ import rospy
 import time
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
+import cv2
 
 
 #create camera interface type and then append cameras using serial numbers from cameras
 
 class Pyspin_VideoCapture:
 	system = PySpin.System.GetInstance()
-	
+	#rospy.init_node('image_feature', anonymous=True)
 	cam_list = system.GetCameras()
 	
 	num_cameras = cam_list.GetSize()
 	
-	print num_cameras
+	#print num_cameras
 	#designed to take camname, deviceserial number and dictionary of other camera parameters in as arguments and store them as attributes of the object
 	def __init__(self,camname,deviceserial,params={}):
 		self.bridge=CvBridge()
@@ -112,11 +113,20 @@ class Pyspin_VideoCapture:
 	#def start_stream(self,device=0,pipe=0):
 
 	def publish_image(self, PySpinconversiontype=PySpin.PixelFormat_Mono8,PySpincolorprocessing=PySpin.HQ_LINEAR):
-		image=self.read_frame(PySpinconversiontype,Pyspincolorprocessing)
-		
+		image=self.read_frame(PySpinconversiontype,PySpincolorprocessing)
 		frame = np.array(image.GetData(), dtype="uint8").reshape( (image.GetHeight(), image.GetWidth(),1))
+		#opencvimage=cv2.imencode("8UC1",frame)
+		#frame = np.array(image.GetData(), dtype="uint8").reshape( (image.GetHeight(), image.GetWidth(),1))
+		msg = Image()
+		'''msg.header.stamp = rospy.Time.now()
+		msg.height=image.GetHeight()
+		msg.width=image.GetWidth()
+		msg.step=image.GetWidth()
+		msg.encoding="mono8"
+		msg.is_bigendian=0
+		msg.data=frame'''
 		try:
-	         self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "mono8"))
+	         self.image_pub.publish(self.bridge.cv2_to_imgmsg(frame, "mono8"))
 		except CvBridgeError as e:
 			print(e)
 		
