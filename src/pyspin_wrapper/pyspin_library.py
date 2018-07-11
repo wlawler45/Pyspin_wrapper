@@ -113,8 +113,8 @@ class Pyspin_VideoCapture:
 	#designed to return a data stream or reference to data stream that can be used for videofeeds, try to use camera piping and specify lower resolution when using
 	#def start_stream(self,device=0,pipe=0):
 
-	def publish_image(self, PySpinconversiontype=PySpin.PixelFormat_Mono8,PySpincolorprocessing=PySpin.HQ_LINEAR):
-		image=self.read_frame(PySpinconversiontype,PySpincolorprocessing)
+	def publish_image(self, req):
+		image=self.read_frame()
 		frame = np.array(image.GetData(), dtype="uint8").reshape( (image.GetHeight(), image.GetWidth(),1))
 		#opencvimage=cv2.imencode("8UC1",frame)
 		#frame = np.array(image.GetData(), dtype="uint8").reshape( (image.GetHeight(), image.GetWidth(),1))
@@ -129,12 +129,13 @@ class Pyspin_VideoCapture:
 		try:
 	         self.image_pub.publish(self.bridge.cv2_to_imgmsg(frame, "mono8"))
 		except CvBridgeError as e:
-			print(e)
+			return False, "Image Pub failed"
+		return True, "Trigger Received"
 		
 	def start_trigger_service(self):
 		rospy.init_node('camera_trigger')
-		s=rospy.Service('camera_trigger', CameraTrigger, publish_image)
-		print "Ready to trigger camera"
+		s=rospy.Service('camera_trigger', Trigger, self.publish_image)
+		print "Ready "
 		rospy.spin()
 		
 	#closes cameras correctly
@@ -149,8 +150,18 @@ class Pyspin_VideoCapture:
 	#def __del__(self):
 	#	self.release()
 
-if __name__=="__main__":
-	camera=PySpin_VideoCapture('overhead_camera',"18080264")
-	camera.open_camera()
-	camera.start_trigger_service()
+def print_triggered(hello):
+	print "trigger received"
+	return True, "Trigger received"
 
+def start_service():
+	rospy.init_node('camera_trigger')
+	s=rospy.Service('camera_trigger', Trigger, print_triggered)
+	print "Ready to trigger camera"
+	rospy.spin()
+
+if __name__=="__main__":
+#	camera=PySpin_VideoCapture('overhead_camera',"18080264")
+#	camera.open_camera()
+#	camera.start_trigger_service()
+	start_service()

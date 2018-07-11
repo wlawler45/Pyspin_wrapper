@@ -1,5 +1,6 @@
+#!/usr/bin/env python
 import pyspin_wrapper.pyspin_library as wrapper
-
+from std_srvs.srv import Trigger
 import numpy as np
 import cv2
 import rospy
@@ -10,10 +11,10 @@ def image_save_and_load(image):
 
 def camera_trigger_client():
 	rospy.wait_for_service('camera_trigger')
-	try:
-		camera_trigger=rospy.ServiceProxy('camera_trigger', CameraTrigger)
-		print camera_trigger.success
-		print camera_trigger.message
+	camera_trigger=rospy.ServiceProxy('camera_trigger', Trigger)
+	s=camera_trigger()
+	#print camera_trigger.success
+	#print camera_trigger.message
 		
 
 if __name__== '__main__':
