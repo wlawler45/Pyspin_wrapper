@@ -6,6 +6,7 @@ import time
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
+from std_srvs.srv import Trigger
 
 
 #create camera interface type and then append cameras using serial numbers from cameras
@@ -117,7 +118,7 @@ class Pyspin_VideoCapture:
 		frame = np.array(image.GetData(), dtype="uint8").reshape( (image.GetHeight(), image.GetWidth(),1))
 		#opencvimage=cv2.imencode("8UC1",frame)
 		#frame = np.array(image.GetData(), dtype="uint8").reshape( (image.GetHeight(), image.GetWidth(),1))
-		msg = Image()
+		#msg = Image()
 		'''msg.header.stamp = rospy.Time.now()
 		msg.height=image.GetHeight()
 		msg.width=image.GetWidth()
@@ -130,6 +131,11 @@ class Pyspin_VideoCapture:
 		except CvBridgeError as e:
 			print(e)
 		
+	def start_trigger_service(self):
+		rospy.init_node('camera_trigger')
+		s=rospy.Service('camera_trigger', CameraTrigger, publish_image)
+		print "Ready to trigger camera"
+		rospy.spin()
 		
 	#closes cameras correctly
 	def release(self):
@@ -143,4 +149,8 @@ class Pyspin_VideoCapture:
 	#def __del__(self):
 	#	self.release()
 
+if __name__=="__main__":
+	camera=PySpin_VideoCapture('overhead_camera',"18080264")
+	camera.open_camera()
+	camera.start_trigger_service()
 
