@@ -18,7 +18,9 @@ def camera_trigger_client():
 		
 
 if __name__== '__main__':
-	camera_trigger_client()
+	while(True):
+
+		camera_trigger_client()
 	
 	#image_out=image_save_and_load(image_out)
 	#cv2.imshow('image',image_out)

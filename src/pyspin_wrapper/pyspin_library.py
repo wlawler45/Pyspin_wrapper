@@ -9,7 +9,8 @@ import cv2
 import cv2.aruco as aruco
 from std_srvs.srv import Trigger
 from geometry_msgs.msg import PoseStamped
-
+#from actionlib import SimpleActionServer
+#from multiprocessing import Process
     
 #create camera interface type and then append cameras using serial numbers from cameras
 
@@ -37,10 +38,11 @@ class Pyspin_VideoCapture:
 			# Clear camera list before releasing system
 			Pyspin_VideoCapture.cam_list.Clear()
 
-			# Release system
+                        # Release systerospy.Servicem
 			Pyspin_VideoCapture.system.ReleaseInstance()
 			raise Exception("No cameras connected")
         	#returns cam_list to allow use of cameras in API context
+
 	def CameraParams(self, M00,M02,M11,M12,M22,C00,C01,C02,C03,C04):
 		camMatrix = np.zeros((3, 3),dtype=np.float64)
 		camMatrix[0][0] = M00
@@ -151,11 +153,11 @@ class Pyspin_VideoCapture:
 		msg.is_bigendian=0
 		msg.data=frame'''
 		try:
-	         self.image_pub.publish(self.bridge.cv2_to_imgmsg(frame, "mono8"))
+			self.image_pub.publish(self.bridge.cv2_to_imgmsg(frame, "mono8"))
 		except CvBridgeError as e:
 			return False, "Image Pub failed"
 		return True, "Trigger Received"
-	
+
 	def aruco_tag_detection(self,frame):
 		cameraMatrix, distCoeffs= self.CameraParams(5813.48508684566, 2560.092268747669, 5857.787526106612, 1928.738413521021, 1.0, -0.0862, 0.3082, 0.0, 0.0, 0.0)
 		
@@ -192,7 +194,7 @@ class Pyspin_VideoCapture:
 		return rvec,tvec
 
 	def start_trigger_service(self):
-		rospy.init_node('camera_trigger')
+                rospy.init_node('camera_trigger')
 		s=rospy.Service('camera_trigger', Trigger, self.publish_image)
 		print "Ready "
 		rospy.spin()
@@ -214,21 +216,22 @@ def print_triggered(hello):
 	return True, "Trigger received"
 
 def start_service():
-	rospy.init_node('camera_trigger')
+        rospy.init_node('camera_trigger')
 	s=rospy.Service('camera_trigger', Trigger, print_triggered)
 	print "Ready to trigger camera"
 	rospy.spin()
 
-if __name__=="__main__":
+'''if __name__=="__main__":
 	overhead_camera=Pyspin_VideoCapture('overhead_camera',"18080264")
 	overhead_camera.open_camera()
 	overhead_camera.start_trigger_service()
-	'''
+
 	gripper_camera1=Pyspin_VideoCapture('gripper_camera1',"18285636")
 	gripper_camera1.open_camera()
 	gripper_camera1.start_trigger_service()
 	gripper_camera2=Pyspin_VideoCapture('gripper_camera2',"18285621")
 	gripper_camera2.open_camera()
 	gripper_camera2.start_trigger_service()
-	'''
+
 #	start_service()
+'''
