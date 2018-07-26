@@ -20,14 +20,14 @@ def camera_trigger_client():
 def camera_continuous_client():
 	rospy.wait_for_service('overhead_camera/continuous_trigger')
 	camera_trigger=rospy.ServiceProxy('overhead_camera/continuous_trigger', CameraTrigger)
-	s=camera_trigger()
+	s=camera_trigger(True)
 	#print camera_trigger.success
 	#print camera_trigger.message
 
 if __name__== '__main__':
 
 
-	camera_trigger_client()
+	camera_continuous_client()
 	
 	#image_out=image_save_and_load(image_out)
 	#cv2.imshow('image',image_out)
