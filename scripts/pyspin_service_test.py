@@ -1,6 +1,7 @@
 #!/usr/bin/env python
+from pyspin_wrapper.srv import CameraTrigger 
 import pyspin_wrapper.pyspin_library as wrapper
-#from std_srvs.srv import Trigger
+from std_srvs.srv import SetBool,Trigger
 import numpy as np
 import cv2
 import rospy
@@ -20,7 +21,7 @@ def camera_trigger_client():
 def camera_continuous_client():
 	rospy.wait_for_service('overhead_camera/continuous_trigger')
 	camera_trigger=rospy.ServiceProxy('overhead_camera/continuous_trigger', CameraTrigger)
-	s=camera_trigger(True)
+	s=camera_trigger(True,"","")
 	#print camera_trigger.success
 	#print camera_trigger.message
 

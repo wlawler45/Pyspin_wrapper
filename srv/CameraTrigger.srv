@@ -1,4 +1,6 @@
 bool continuous
+string conversion_type
+string color_processing
 ---
 bool success
 string message
