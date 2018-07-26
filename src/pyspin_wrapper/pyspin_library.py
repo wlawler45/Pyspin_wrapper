@@ -169,10 +169,25 @@ class Pyspin_VideoCapture:
 
 
 
-	def publish_image(self, req):
-		if(req.continuous):
-			self.continuous_capture()
+	def publish_image(self, req, trigger):
+		if(trigger):
+			if(req.continuous):
+				self.continuous_capture()
 
+			else:
+				image=self.read_frame()
+				frame = np.array(image.GetData(), dtype="uint8").reshape( (image.GetHeight(), image.GetWidth(),1))
+				im=pic.fromarray(frame)
+				compressed_msg=CompressedImage()
+				compressed_msg.header.stamp = rospy.Time.now()
+				compressed_msg.format='jpeg'
+				compressed_msg.data=im
+				try:
+					self.image_pub.publish(self.bridge.cv2_to_imgmsg(frame, "mono8"))
+					self.compressed_image_pub.publish(compressed_msg)
+				except CvBridgeError as e:
+					return False, "Image Pub failed"
+				return True, "Trigger Received"
 		else:
 			image=self.read_frame()
 			frame = np.array(image.GetData(), dtype="uint8").reshape( (image.GetHeight(), image.GetWidth(),1))
@@ -190,10 +205,11 @@ class Pyspin_VideoCapture:
 
 
 
-
 	def start_trigger_service(self):
-		        rospy.init_node(self.camname+'/camera_trigger')
-		s=rospy.Service(self.camname+'/camera_trigger', CameraTrigger, self.publish_image)
+		rospy.init_node(self.camname+'/camera_trigger')
+		s=rospy.Service(self.camname+'/camera_trigger', Trigger, self.publish_image(False))
+		rospy.init_node(self.camname+'/continuous_trigger')
+		s=rospy.Service(self.camname+'/continuous_trigger', CameraTrigger, self.publish_image(True))
 		rospy.loginfo(self.camname+' Trigger service ready')
 		rospy.spin()
 		
