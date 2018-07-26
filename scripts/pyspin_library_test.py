@@ -26,7 +26,7 @@ if __name__== '__main__':
 
 	#image_out=camera_obj.read_frame()
 	
-	camera_obj.publish_image()
+	camera_obj.publish_continuous()
 	raw_input("press enter")
 	#image_out=image_save_and_load(image_out)
 	#cv2.imshow('image',image_out)

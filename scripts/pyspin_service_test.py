@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import pyspin_wrapper.pyspin_library as wrapper
-from std_srvs.srv import Trigger
+#from std_srvs.srv import Trigger
 import numpy as np
 import cv2
 import rospy
