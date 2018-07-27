@@ -21,7 +21,7 @@ def camera_trigger_client():
 def camera_continuous_client():
 	rospy.wait_for_service('overhead_camera/continuous_trigger')
 	camera_trigger=rospy.ServiceProxy('overhead_camera/continuous_trigger', CameraTrigger)
-	s=camera_trigger(True,"","")
+	s=camera_trigger(False)
 	#print camera_trigger.success
 	#print camera_trigger.message
 

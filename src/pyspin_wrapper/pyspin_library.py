@@ -175,12 +175,8 @@ class Pyspin_VideoCapture:
 		#self.continuous_capture()
 		#bool hello
 		#hello=req.continuous
+		rospy.loginfo("image service call received, taking pictures")
 		
-		if(req.conversion_type !=""):
-			self.Pyspinconversiontype=req.conversion_type
-		if(req.color_processing !=""):
-			self.PySpincolorprocessing=req.color_processing
-			
 		if(req.continuous):
 			
 			self.continuous_capture()
@@ -188,12 +184,13 @@ class Pyspin_VideoCapture:
 			
 		else:
 			image=self.read_frame()
-			frame = np.array(image.GetData(), dtype="uint8").reshape( (image.GetHeight(), image.GetWidth(),1))
-			im=pic.fromarray(frame)
+			frame = np.array(image.GetData(), dtype="uint8").reshape( (image.GetHeight(), image.GetWidth()))
+			
+			im=pic.fromarray(frame.astype(np.uint8))
 			compressed_msg=CompressedImage()
 			compressed_msg.header.stamp = rospy.Time.now()
 			compressed_msg.format='jpeg'
-			compressed_msg.data=im
+			compressed_msg.data=im.tobytes()
 			try:
 				self.image_pub.publish(self.bridge.cv2_to_imgmsg(frame, "mono8"))
 				self.compressed_image_pub.publish(compressed_msg)
@@ -210,6 +207,7 @@ class Pyspin_VideoCapture:
 		s=rospy.Service(self.camname+'/continuous_trigger', CameraTrigger, self.publish_image)
 		rospy.loginfo(self.camname+' Trigger service ready')
 		rospy.spin()
+		
 		
 	#closes cameras correctly
 	def release(self):
