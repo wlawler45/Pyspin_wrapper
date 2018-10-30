@@ -165,7 +165,9 @@ class Pyspin_VideoCapture:
                         self.image_pub.publish(self.bridge.cv2_to_imgmsg(frame, "mono8"))
                     except CvBridgeError as e:
                         return False, "Image Pub failed"
+
                     image_result.Release()
+
 
             self.cam.EndAcquisition()
 
