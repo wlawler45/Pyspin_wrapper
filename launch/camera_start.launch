@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 
 <launch>
+  <arg name="sim" default="false"/>
   <group unless="$(arg sim)">
     <node name="pyspin_overhead_service" pkg="pyspin_wrapper" type="pyspin_overhead_service.py" respawn="false" output="screen"/>
     <node name="pyspin_gripper_proximal_service" pkg="pyspin_wrapper" type="pyspin_gripper_proximal_service.py" respawn="false" output="screen"/>

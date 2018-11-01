@@ -27,8 +27,11 @@ class Pyspin_VideoCapture:
     def __init__(self,camname,deviceserial,params={}):
         self.bridge=CvBridge()
         topicname="/"+camname+"/image"
-        self.image_pub=rospy.Publisher(topicname,Image)
-        self.compressed_image_pub=rospy.Publisher(topicname+'_compressed', CompressedImage)
+        imagestream="/"+camname+"/image_stream"
+        self.image_pub=rospy.Publisher(topicname,Image,queue_size=100)
+        self.stream_pub=rospy.Publisher(imagestream,Image,queue_size=100)
+        self.compressed_image_pub=rospy.Publisher(topicname+'_compressed', CompressedImage,queue_size=100)
+        self.compressed_image_stream=rospy.Publisher(imagestream+'_compressed',CompressedImage,queue_size=100)
         #self.tag_pose_pub=rospy.Publisher("ar_tag_pose",PoseStamped
         self.camname=camname
         self.deviceserial=deviceserial
@@ -37,12 +40,11 @@ class Pyspin_VideoCapture:
         self.PySpinconversiontype=PySpin.PixelFormat_Mono8
         self.PySpincolorprocessing=PySpin.HQ_LINEAR
         self.first_capture=True
+        self.midstream_trigger=False
         self.continuous_capturing=False
         self.continuous_capture_lock=threading.Lock()
-        self.continuous_capture_condition=threading.Condition()
-        self.continuous_capture_thread=threading.Thread(target=self.continuous_capture, args=(self.continuous_capture_condition,))
-        self.continuous_capture_thread.daemon=True
-        self.continuous_capture_thread.start()
+        self.continuous_capture_start=threading.Event()
+        
 
 
         if Pyspin_VideoCapture.num_cameras == 0:
@@ -113,6 +115,11 @@ class Pyspin_VideoCapture:
         if not PySpin.IsAvailable(node_acquisition_mode_continuous) or not PySpin.IsReadable(node_acquisition_mode_continuous):
             rospy.logerr("Unable to set acquisition mode to continuous (entry retrieval). Aborting...")
             return False
+        self.node_binning_mode= PySpin.CEnumerationPtr(self.nodemap.GetNode("BinningVerticalMode"))
+        binning_mode=node_binning_mode.GetCurrentEntry()
+        print str(binning_mode.GetValue())
+        rospy.loginfo("HELLO!!!!!!!!!"+str(binning_mode))
+
 
         # Retrieve integer value from entry node
         acquisition_mode_continuous = node_acquisition_mode_continuous.GetValue()
@@ -122,8 +129,10 @@ class Pyspin_VideoCapture:
 		
 	#read_frame can be called with pyspin conversion and processing types defined in PySpin.py
     def read_frame(self):
+        if not self.midstream_trigger:
 
-        self.cam.BeginAcquisition()
+            self.cam.BeginAcquisition()
+       
         if(self.first_capture):
             for i in range(3):
                 throwaway_frame=self.cam.GetNextImage()
@@ -140,36 +149,36 @@ class Pyspin_VideoCapture:
 		
     #designed to return a data stream or reference to data stream that can be used for videofeeds, try to use camera piping and specify lower resolution when using
     #def start_stream(self,device=0,pipe=0):
-    def continuous_capture(self,condition):
-        with condition:
+    def continuous_capture(self):
+        
 
-            condition.wait()
-            self.first_capture=False
+            
+        self.first_capture=False
 
-            self.cam.BeginAcquisition()
-            rospy.loginfo("Beginning Acquisition")
+        self.cam.BeginAcquisition()
+        rospy.loginfo("Beginning Acquisition")
 
-            while True:
+        while self.continuous_capturing:
 
 
-
+            self.continuous_capture_start.wait()
                 #condition.wait()
             #while self.continuous_capturing:
-                while self.continuous_capturing:
+            
+            image_result = self.cam.GetNextImage()
+            image_converted = image_result.Convert(self.PySpinconversiontype, self.PySpincolorprocessing)
+            frame = np.array(image_converted.GetData(), dtype="uint8").reshape( (image_converted.GetHeight(), image_converted.GetWidth(),1))
+            resized=cv2.resize(frame,(image_converted.GetWidth()/16,image_converted.GetHeight()/16))
+            
+            try:
+                self.stream_pub.publish(self.bridge.cv2_to_imgmsg(resized, "mono8"))
+            except CvBridgeError as e:
+                return False, "Image Pub failed"
 
-                    #image=self.read_frame()
-                    image_result = self.cam.GetNextImage()
-                    image_converted = image_result.Convert(self.PySpinconversiontype, self.PySpincolorprocessing)
-                    frame = np.array(image_converted.GetData(), dtype="uint8").reshape( (image_converted.GetHeight(), image_converted.GetWidth(),1))
-                    try:
-                        self.image_pub.publish(self.bridge.cv2_to_imgmsg(frame, "mono8"))
-                    except CvBridgeError as e:
-                        return False, "Image Pub failed"
-
-                    image_result.Release()
+            image_result.Release()
 
 
-            self.cam.EndAcquisition()
+        self.cam.EndAcquisition()
 
 
 
@@ -178,16 +187,18 @@ class Pyspin_VideoCapture:
         #bool hello
         #hello=req.continuous
         rospy.loginfo("image service call received, taking pictures")
-        self.midstream_trigger=False
+        
 
         if(req.continuous):
             self.continuous_capturing= not self.continuous_capturing
 
             if self.continuous_capturing:
-
-                with self.continuous_capture_condition:
-
-                    self.continuous_capture_condition.notify()
+                self.continuous_capture_thread=threading.Thread(target=self.continuous_capture)
+                self.continuous_capture_thread.daemon=True
+                self.continuous_capture_thread.start()
+                self.continuous_capture_start.set()
+            else:
+                self.continuous_capture_start.clear()
             return True, "Trigger Received"
 
             #else:
@@ -198,11 +209,12 @@ class Pyspin_VideoCapture:
 
 			
         else:
+            rospy.loginfo("Taking one picture")
             if self.continuous_capturing:
-                self.continuous_capturing=False
-                time.sleep(0.03)
+                self.continuous_capture_start.clear()
+                rospy.loginfo("stopping midstream")
                 self.midstream_trigger=True
-                self.cam.EndAcquisition()
+                
             image=self.read_frame()
             frame = np.array(image.GetData(), dtype="uint8").reshape( (image.GetHeight(), image.GetWidth()))
 
@@ -221,19 +233,14 @@ class Pyspin_VideoCapture:
                 self.compressed_image_pub.publish(compressed_msg)
             except CvBridgeError as e:
                 return False, "Image Pub failed"
-            return True, "Trigger Received"
+            
 
             if self.midstream_trigger:
-
-
-
-                self.continuous_capturing=True
-                time.sleep(1)
-                with self.continuous_capture_condition:
-
-                    self.continuous_capture_condition.notify()
+                self.continuous_capture_start.set()
+                rospy.loginfo("resuming stream")
                 self.midstream_trigger=False
 
+            return True, "Trigger Received"
 
     def start_trigger_service(self):
         #rospy.init_node('camera_trigger')
