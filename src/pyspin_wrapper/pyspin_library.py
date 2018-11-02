@@ -115,11 +115,15 @@ class Pyspin_VideoCapture:
         if not PySpin.IsAvailable(node_acquisition_mode_continuous) or not PySpin.IsReadable(node_acquisition_mode_continuous):
             rospy.logerr("Unable to set acquisition mode to continuous (entry retrieval). Aborting...")
             return False
-        self.node_binning_mode= PySpin.CEnumerationPtr(self.nodemap.GetNode("BinningVerticalMode"))
-        binning_mode=node_binning_mode.GetCurrentEntry()
-        print str(binning_mode.GetValue())
-        rospy.loginfo("HELLO!!!!!!!!!"+str(binning_mode))
-
+        
+        #node_binning_mode= PySpin.CEnumerationPtr(self.nodemap.GetNode("BinningSelector"))
+        #binning_mode=node_binning_mode.GetEntryByName("Sensor")
+        #node_binning_mode.SetIntValue(binning_mode.GetValue())
+        #vertical_binning_mode= PySpin.CIntegerPtr(self.nodemap.GetNode("BinningHorizontal"))
+        
+        #vertical_binning_mode.SetValue(2)
+        
+        
 
         # Retrieve integer value from entry node
         acquisition_mode_continuous = node_acquisition_mode_continuous.GetValue()
@@ -139,10 +143,11 @@ class Pyspin_VideoCapture:
                 time.sleep(1)
             self.first_capture=False
         image_result = self.cam.GetNextImage()
-
-			
+        
         image_converted = image_result.Convert(self.PySpinconversiontype, self.PySpincolorprocessing)
+        image_converted.Save("testimage.jpg")
         image_result.Release()
+        
         if not self.midstream_trigger:
             self.cam.EndAcquisition()
         return image_converted
@@ -217,7 +222,8 @@ class Pyspin_VideoCapture:
                 
             image=self.read_frame()
             frame = np.array(image.GetData(), dtype="uint8").reshape( (image.GetHeight(), image.GetWidth()))
-
+            print image.GetHeight()
+            print image.GetWidth()
             im=pic.fromarray(frame.astype(np.uint8))
             compressed_msg=CompressedImage()
             compressed_msg.header.stamp = rospy.Time.now()

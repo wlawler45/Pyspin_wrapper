@@ -11,17 +11,8 @@ def image_save_and_load(image):
 	return cv2.resize(loaded,(1920,1080))
 
 if __name__== '__main__':
-	camname="topcam"
-	serialnum="18080264"
-	print "hello"
-	rospy.init_node('image_feature', anonymous=True)
-	camera_obj=wrapper.Pyspin_VideoCapture(camname,serialnum,{})
-	camera_obj.printall_camera_ids()
-	
-	
-
-	camera_obj.open_camera()
-	camera_obj.print_camera_values()
+	overhead_camera=wrapper.Pyspin_VideoCapture('overhead_camera',"18080264")
+	overhead_camera.open_camera()
 	
 
 	#image_out=camera_obj.read_frame()
