@@ -104,7 +104,7 @@ class Pyspin_VideoCapture:
         cam.Init()
         self.nodemap=cam.GetNodeMap()
         self.cam=cam
-
+        print cam.IsStreaming()
         node_acquisition_mode = PySpin.CEnumerationPtr(self.nodemap.GetNode("AcquisitionMode"))
         if not PySpin.IsAvailable(node_acquisition_mode) or not PySpin.IsWritable(node_acquisition_mode):
             rospy.logerr("Unable to set acquisition mode to continuous (enum retrieval). Aborting...")
@@ -116,13 +116,18 @@ class Pyspin_VideoCapture:
             rospy.logerr("Unable to set acquisition mode to continuous (entry retrieval). Aborting...")
             return False
         
+        #pixel_format= PySpin.CEnumerationPtr(self.nodemap.GetNode("PixelFormat"))
+        #pixel_format_mode=pixel_format.GetEntryByName("Mono8")
+        #pixel_format.SetIntValue(pixel_format_mode.GetValue())
+        
+        #horizontal_binning_mode= PySpin.CIntegerPtr(self.nodemap.GetNode("BinningHorizontal"))
+        #horizontal_binning_mode.SetValue(1)
+
+        #vertical_binning_mode= PySpin.CIntegerPtr(self.nodemap.GetNode("BinningVertical"))
+        #vertical_binning_mode.SetValue(1)
         #node_binning_mode= PySpin.CEnumerationPtr(self.nodemap.GetNode("BinningSelector"))
-        #binning_mode=node_binning_mode.GetEntryByName("Sensor")
+        #binning_mode=node_binning_mode.GetEntryByName("All")
         #node_binning_mode.SetIntValue(binning_mode.GetValue())
-        #vertical_binning_mode= PySpin.CIntegerPtr(self.nodemap.GetNode("BinningHorizontal"))
-        
-        #vertical_binning_mode.SetValue(2)
-        
         
 
         # Retrieve integer value from entry node
@@ -145,7 +150,7 @@ class Pyspin_VideoCapture:
         image_result = self.cam.GetNextImage()
         
         image_converted = image_result.Convert(self.PySpinconversiontype, self.PySpincolorprocessing)
-        image_converted.Save("testimage.jpg")
+        #image_converted.Save("testimage.jpg")
         image_result.Release()
         
         if not self.midstream_trigger:
@@ -171,9 +176,11 @@ class Pyspin_VideoCapture:
             #while self.continuous_capturing:
             
             image_result = self.cam.GetNextImage()
+            #print image_result.GetHeight()
+            #print image_result.GetWidth()
             image_converted = image_result.Convert(self.PySpinconversiontype, self.PySpincolorprocessing)
-            frame = np.array(image_converted.GetData(), dtype="uint8").reshape( (image_converted.GetHeight(), image_converted.GetWidth(),1))
-            resized=cv2.resize(frame,(image_converted.GetWidth()/16,image_converted.GetHeight()/16))
+            frame = np.array(image_result.GetData(), dtype="uint8").reshape( (image_result.GetHeight(), image_result.GetWidth(),1))
+            resized=cv2.resize(frame,(image_result.GetWidth()/16,image_result.GetHeight()/16))
             
             try:
                 self.stream_pub.publish(self.bridge.cv2_to_imgmsg(resized, "mono8"))
@@ -196,7 +203,7 @@ class Pyspin_VideoCapture:
 
         if(req.continuous):
             self.continuous_capturing= not self.continuous_capturing
-
+            
             if self.continuous_capturing:
                 self.continuous_capture_thread=threading.Thread(target=self.continuous_capture)
                 self.continuous_capture_thread.daemon=True
@@ -222,8 +229,10 @@ class Pyspin_VideoCapture:
                 
             image=self.read_frame()
             frame = np.array(image.GetData(), dtype="uint8").reshape( (image.GetHeight(), image.GetWidth()))
-            print image.GetHeight()
-            print image.GetWidth()
+            
+            #print image.GetHeight()
+            #print image.GetWidth()
+           
             im=pic.fromarray(frame.astype(np.uint8))
             compressed_msg=CompressedImage()
             compressed_msg.header.stamp = rospy.Time.now()
