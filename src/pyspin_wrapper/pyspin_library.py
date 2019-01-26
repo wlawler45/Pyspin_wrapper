@@ -8,7 +8,7 @@ from sensor_msgs.msg import Image, CompressedImage
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
 from std_srvs.srv import SetBool,Trigger
-from pyspin_wrapper.srv import CameraTrigger
+
 from PIL import Image as pic
 #from actionlib import SimpleActionServer
 #from multiprocessing import Process
@@ -200,7 +200,7 @@ class Pyspin_VideoCapture:
         #hello=req.continuous
         rospy.loginfo("image service call received, taking pictures")
         
-
+        '''
         if(req.continuous):
             self.continuous_capturing= not self.continuous_capturing
             
@@ -221,47 +221,49 @@ class Pyspin_VideoCapture:
 
 			
         else:
-            rospy.loginfo("Taking one picture")
-            if self.continuous_capturing:
-                self.continuous_capture_start.clear()
-                rospy.loginfo("stopping midstream")
-                self.midstream_trigger=True
-                
-            image=self.read_frame()
-            frame = np.array(image.GetData(), dtype="uint8").reshape( (image.GetHeight(), image.GetWidth()))
-            
-            #print image.GetHeight()
-            #print image.GetWidth()
-           
-            im=pic.fromarray(frame.astype(np.uint8))
-            compressed_msg=CompressedImage()
-            compressed_msg.header.stamp = rospy.Time.now()
-            compressed_msg.format='jpeg'
-            compressed_msg.data=im.tobytes()
-            image_msg=Image()
+            '''
+        rospy.loginfo("Taking one picture")
+        '''
+        if self.continuous_capturing:
+            self.continuous_capture_start.clear()
+            rospy.loginfo("stopping midstream")
+            self.midstream_trigger=True
+        '''
+        image=self.read_frame()
+        frame = np.array(image.GetData(), dtype="uint8").reshape( (image.GetHeight(), image.GetWidth()))
 
-            image_msg=self.bridge.cv2_to_imgmsg(frame,"mono8")
-            image_msg.header.stamp=rospy.Time.now()
+        #print image.GetHeight()
+        #print image.GetWidth()
 
-            try:
-                self.image_pub.publish(image_msg)
-                self.compressed_image_pub.publish(compressed_msg)
-            except CvBridgeError as e:
-                return False, "Image Pub failed"
-            
+        im=pic.fromarray(frame.astype(np.uint8))
+        compressed_msg=CompressedImage()
+        compressed_msg.header.stamp = rospy.Time.now()
+        compressed_msg.format='jpeg'
+        compressed_msg.data=im.tobytes()
+        image_msg=Image()
 
-            if self.midstream_trigger:
-                self.continuous_capture_start.set()
-                rospy.loginfo("resuming stream")
-                self.midstream_trigger=False
+        image_msg=self.bridge.cv2_to_imgmsg(frame,"mono8")
+        image_msg.header.stamp=rospy.Time.now()
 
-            return True, "Trigger Received"
+        try:
+            self.image_pub.publish(image_msg)
+            self.compressed_image_pub.publish(compressed_msg)
+        except CvBridgeError as e:
+            return False, "Image Pub failed"
+
+        '''
+        if self.midstream_trigger:
+            self.continuous_capture_start.set()
+            rospy.loginfo("resuming stream")
+            self.midstream_trigger=False
+        '''
+        return True, "Trigger Received"
 
     def start_trigger_service(self):
         #rospy.init_node('camera_trigger')
         #s=rospy.Service(self.camname+'/camera_trigger', Trigger, self.publish_image())
-        rospy.init_node('continuous_trigger')
-        s=rospy.Service(self.camname+'/continuous_trigger', CameraTrigger, self.publish_image)
+        rospy.init_node('trigger')
+        s=rospy.Service(self.camname+'/trigger', Trigger, self.publish_image)
         rospy.loginfo(self.camname+' Trigger service ready')
         rospy.spin()
 		
